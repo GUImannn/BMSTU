@@ -1,0 +1,187 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <ctime>
+#include <cmath>
+#include <ios>
+
+using namespace std;
+
+double random_amount(double mx,double mn){
+	double result = 0.0;
+    result = fmod((double)rand(),mx);
+    if(result < mn){
+       result = mn;
+    }
+    return result;
+}
+
+struct Time_ch{
+	double time;
+	double deviation;
+};
+
+struct Request{
+    int tranzakt_id;
+    int device_id;
+    double model_join_time;
+    double q_join_time;
+    double device_join_time;
+    double device_leave_time;
+
+    void print_info();
+};
+
+void Request::print_info(){
+   ofstream output;
+   output.open("output.txt", ios_base::app);
+   output<<"Tranzakt id: "<<tranzakt_id<<" "<<flush;
+   output<<"Model join time: "<<model_join_time<<" ";
+   output<<"Queue join time: "<<q_join_time<<" ";
+   output<<"Device "<<device_id<<" join time: "<<device_join_time<<" ";
+   output<<"Device "<<device_id<<" leave time: "<<device_leave_time<<" ";
+   output<<endl;
+   output.close();
+}
+
+struct Queue{
+   vector<Request> tranzakts;
+   Time_ch time_configuration;
+
+   Queue(Time_ch tcm):time_configuration(tcm){};
+   int is_empty();
+};
+
+class Device{
+private:
+   Time_ch expenses;
+   Queue expectation;
+   int device_id;
+   double amount;
+public:
+   Device(Time_ch exp,int did, Time_ch t2,double am):expenses(exp),device_id(did),expectation(Queue(t2)),amount(am){};
+   friend void modeling(Device* t1, Device* t2,double amount);
+};
+
+
+int Queue::is_empty(){
+   return tranzakts.size();
+}
+
+void modeling(Device* t1, Device* t2, double amount){
+   double time = 0.0;
+   double time1 = 0.0;
+   double time2 = 0.0;
+   int tranzakt_id = 0;
+   int checker = 0;
+   Request now1;
+   Request now2;
+   while (time <= amount)
+   {
+      if(time == 0.0){
+         if(t1->expenses.time < t2->expenses.time){
+            now1.tranzakt_id = tranzakt_id;
+            now1.model_join_time = t1->expectation.time_configuration.time - t1->expectation.time_configuration.deviation;
+            now1.q_join_time = now1.model_join_time;
+            now1.device_join_time = now1.q_join_time;
+            now1.device_leave_time = now1.device_join_time + t1->expenses.time;
+            now1.device_id = t1->device_id;
+            tranzakt_id++;
+            now1.print_info();
+            checker = t1->device_id;
+            t1->expectation.tranzakts.push_back(now1);
+            time = now1.device_leave_time;
+         }else if(t1->expenses.time > t2->expenses.time){
+            now2.tranzakt_id = tranzakt_id;
+            now2.model_join_time = t2->expectation.time_configuration.time - t2->expectation.time_configuration.deviation;
+            now2.q_join_time = now2.model_join_time;
+            now2.device_join_time = now2.q_join_time;
+            now2.device_leave_time = now2.device_join_time + t2->expenses.time;
+            now2.device_id = t2->device_id;
+            tranzakt_id++;
+            now2.print_info();
+            checker = t2->device_id;
+            t2->expectation.tranzakts.push_back(now2);
+            time = now2.device_leave_time;
+         }
+      }else{
+         if(t1->expectation.is_empty() <= t2->expectation.is_empty()){
+            if(checker == t2->device_id){
+               now1.tranzakt_id = tranzakt_id;
+               now1.model_join_time = time + t1->expectation.time_configuration.time - t1->expectation.time_configuration.time;
+               now1.q_join_time = now1.model_join_time;
+               now1.device_join_time = now1.q_join_time;
+               now1.device_leave_time = now1.device_join_time + t1->expenses.time;
+               now1.device_id = t1->device_id;
+               tranzakt_id++;
+               now1.print_info();
+               t1->expectation.tranzakts.push_back(now1);
+               tranzakt_id++;
+               time1 = now1.device_join_time;
+               checker =0;
+            }else{
+               now1.tranzakt_id = tranzakt_id;
+               now1.model_join_time = time1 + t1->expectation.time_configuration.time - t1->expectation.time_configuration.time;
+               now1.q_join_time = now1.model_join_time;
+               now1.device_join_time = now1.device_leave_time;
+               now1.device_leave_time = now1.device_join_time + t1->expenses.time;
+               now1.device_id = t1->device_id;
+               now1.print_info();
+               t1->expectation.tranzakts.push_back(now1);
+               tranzakt_id++;
+               time1 = now1.device_join_time;
+            }
+         }else if(t1->expectation.is_empty() > t2->expectation.is_empty()){
+            if(checker == t1->device_id){
+               now2.tranzakt_id = tranzakt_id;
+               now2.model_join_time = time2 + t2->expectation.time_configuration.time - t2->expectation.time_configuration.time;
+               now2.q_join_time = now2.model_join_time;
+               now2.device_join_time = now2.q_join_time;
+               now2.device_leave_time = now2.device_join_time + t2->expenses.time;
+               now2.device_id = t2->device_id;
+               now2.print_info();
+               t2->expectation.tranzakts.push_back(now2);
+               tranzakt_id++;
+               time2 = now2.device_join_time;
+               checker =0;
+            }else{
+               now2.tranzakt_id = tranzakt_id;
+               now2.model_join_time = time2 + t2->expectation.time_configuration.time - t2->expectation.time_configuration.time - t2->expectation.time_configuration.deviation;
+               now2.q_join_time = now2.model_join_time;
+               now2.device_join_time = now2.device_leave_time;
+               now2.device_leave_time = now2.device_join_time + t2->expenses.time;
+               now2.device_id = t2->device_id;
+               now2.print_info();
+               t2->expectation.tranzakts.push_back(now2);
+               tranzakt_id++;
+               time2 = now2.device_join_time;
+            }
+
+         }
+      }
+      if(time1 > time2){
+         time = time1;
+      }
+      if(time2 > time1){
+         time = time2;
+      }
+   }
+}
+
+int main()
+{
+   srand(time(NULL));
+   Time_ch test;
+   Time_ch time_configuration;
+   double amount = 3600;
+   time_configuration.time = random_amount(19.938,0.3);
+   time_configuration.deviation = random_amount(0.9,0.3);
+   test.time = random_amount(20,5);
+   test.deviation = 0;
+   Device t1(test,1,time_configuration,amount);
+   test.time = random_amount(20,8);
+   Device t2(test,2,time_configuration,amount);
+   modeling(&t1,&t2,amount);
+   return 0;
+
+}
