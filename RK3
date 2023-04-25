@@ -1,0 +1,177 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define LENBUF 128
+
+struct word{ 
+		char* string;
+		struct word *next;
+		} *start_even = NULL, *start_odd = NULL, *start_evenodd = NULL ;		
+    
+void test_opening(FILE*);
+int reading_file(FILE*);
+int not_separator(char);
+void even(struct word*);
+void odd(struct word*);
+void unification();
+void printing_std(struct word*);
+void printing_file(struct word*, FILE*);
+
+int main(int argc, char **argv)
+{
+	FILE *file_reading;
+	if (argc != 4)
+	{
+		exit(1);
+	}
+	file_reading=fopen(argv[1], "r");
+	test_opening(file_reading); 	
+	reading_file(file_reading); 		
+	fclose(file_reading); 	
+	unification(); 						//объединение 
+	printing_std(start_even);			//в поток вывода
+	file_reading=fopen(argv[2], "w");
+	test_opening(file_reading);
+	printing_file(start_odd, file_reading);		//в файл 2
+	fclose(file_reading);
+	file_reading=fopen(argv[3], "w");
+	test_opening(file_reading);
+	printing_file(start_evenodd, file_reading);		//в файл 3
+	fclose(file_reading);
+	return 0;
+}
+void test_opening(FILE *file) 			
+{
+	if (file == NULL)
+	{
+		exit(2);
+	} 
+}
+
+int reading_file(FILE *file)		
+{
+	char ch, buf[LENBUF], *point_on_word;
+	int s=0, count=0;;
+	struct word *word_in_function; 
+	while(ch != EOF)
+	{
+		s=0;
+		while(not_separator(ch=fgetc(file)) == 1)  
+		{
+			if(ch == EOF)
+				return 0;
+			buf[s] = ch;
+			s++;
+		}
+		count++;
+		buf[s]='\0';
+		point_on_word = (char*)malloc((s+1)*sizeof(char)); 
+		if (point_on_word == NULL) 									
+		{	
+			exit(3);
+		}
+		word_in_function = (struct word*)malloc(sizeof(struct word)); 
+		if (word_in_function == NULL) 							
+		{  
+			exit(3);
+		}
+		strcpy(point_on_word, buf); 	
+		word_in_function->string=point_on_word;
+		if (count%2 == 0)
+			even(word_in_function);
+		else
+			odd(word_in_function);
+	}
+	return 0;
+}
+
+int not_separator(char c) 	
+{
+	if ((c != '\n') && (c != ' ') && (c != '\t'))
+		return 1;
+	else
+		return 0;
+}
+
+void even(struct word *p) 	//чёт	
+{
+	p->next=start_even;
+	start_even=p;
+}
+
+void odd(struct word *p) 		//нечёт
+{
+	p->next=start_odd;
+	start_odd=p;
+}
+
+void unification() 			
+{
+	struct word* p;
+	struct word* odd = start_odd; 	
+	struct word* even = start_even; 		
+  int i, j, symbols_odd, symbols_even;
+	while (odd != NULL)    	//т.к. нечётных >= чётных
+	{
+		p = (struct word*)malloc(sizeof(struct word)); 				
+		if (p == NULL) 							
+		{
+			exit(3);
+		}
+		for (symbols_odd = 0; odd->string[symbols_odd] != '\0'; symbols_odd++); 	
+		if (even == NULL) 							
+		{
+			p->string = (char*)malloc((symbols_odd + 1)*sizeof(char)); 		
+			if (p == NULL) 							
+			{
+				exit(3);
+			}
+			for (i = 0; odd->string[i] != '\0'; i++)
+			{
+				p->string[i] = odd->string[i];
+			}
+			p->string[i] = '\0';
+		}
+		else
+		{
+			p->string = (char*)malloc((symbols_odd + symbols_even+1)*sizeof(char)); 
+			if (p == NULL) 							
+			{
+				exit(3);
+			}
+			for (symbols_even = 0; even->string[symbols_even] != '\0'; symbols_even++); 	//подсчёт символов в слове из чётного списка
+			for (i = 0; i < symbols_even; i++)
+			{
+				p->string[i] = even->string[i];
+			}
+			for (i = symbols_even, j = 0; i < symbols_odd+symbols_even; i++, j++)			
+			{
+				p->string[i] = odd->string[j];
+			}
+			p->string[symbols_odd+symbols_even] = '\0';
+			even = even->next;
+		}
+		p->next = start_evenodd;
+		start_evenodd = p; 
+		odd = odd->next; 	
+	}
+}
+
+void printing_std(struct word *where_from)			//в поток вывода
+{
+	struct word *p;
+	for(p=where_from;p != NULL; p=p->next)
+	{
+		printf("%s\n", p->string);
+	}
+}
+
+void printing_file(struct word *where_from, FILE *file_to)     	//в файл
+{
+	struct word *p;
+	for(p=where_from;p != NULL; p=p->next)
+	{
+		fputs(p->string, file_to);
+		fputc('\n', file_to);
+	}
+}
