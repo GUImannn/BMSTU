@@ -1,0 +1,56 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#define LENGTH 70
+#define MIL 10000
+
+
+
+int main(int argc, char* argv[])
+{
+  char k, *buf;
+  unsigned int speed = 1;
+  if (argc<2)
+  {
+    printf("Not enought arguments\n");
+    return(1);
+  }
+  if (strlen(argv[1])>LENGTH)
+  {
+    printf("Line length must not exceed %d!\n",LENGTH);
+    return(2);
+  }
+  buf = calloc(LENGTH+1,sizeof(char));
+  if (buf==NULL)
+  {
+    return(3);
+  }
+  if (argc>2)
+  {
+    if (atoi(argv[2])<0||atoi(argv[2])>100)
+    {
+      printf("use an integer between 1 and 100\n");
+      return(4);
+    }
+    speed=atoi(argv[2]);
+    
+  }
+  speed=speed*MIL; 
+  sprintf (buf,"%s",argv[1]); 
+  memset (buf+strlen(argv[1]), ' ', LENGTH-strlen(argv[1])); 
+  printf("\n");
+  while (1)
+  {
+    fprintf (stdout,"\r%s",buf);
+    fflush (stdout); 
+    k=*buf; 
+    strncpy(buf,buf+1,LENGTH-1);
+    *(buf+LENGTH-1)=k; 
+    usleep(speed); 
+  }
+}
+
+
+
+
